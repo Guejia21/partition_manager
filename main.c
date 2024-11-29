@@ -101,17 +101,18 @@ int main(int argc, char *argv[]) {
 		if(!is_valid_gpt_header(&hdr)){
 			fprintf(stderr,"Invalid GPT Header\n");
 			exit(EXIT_FAILURE);
-		}		
+		}
+		num_sectors = ceil((hdr.num_partition_entries*hdr.size_partition_entry)/512.0);		
 		print_gpt_header(&hdr);
 		//5.2 Repetir
 		gpt_partition_descriptor descriptors[4]; //4 descriptores por sector(suponiendo que el tamaño del descriptor es 128 bytes y el bloque de disco es de 512 bytes)
-		num_sectors = ceil((hdr.num_partition_entries*hdr.size_partition_entry)/512.0); //Cantidad de sectores de la tabla
+		 //Cantidad de sectores de la tabla
 		for(int i = 0; i < num_sectors; i++){			
 			//5.2.1 Leer los siguientes sectores de la tabla de particiones
 			if(read_lba_sector(disk,hdr.partition_entry_lba+i,(char*)&descriptors)==0){
 				fprintf(stderr,"Unable to read this sector\n");
 				exit(EXIT_FAILURE);
-			}
+			}			
 			//5.2.2 Para cada descriptor leído, imprimir su información	
 			for(int j = 0; j < 4; j++){
 				if(is_null_descriptor(&descriptors[j])) continue;
@@ -128,7 +129,8 @@ int read_lba_sector(char * disk, unsigned long long lba, char buf[512]) {
 	FILE *fd;
 	//Abrir el archivo en modo lectura
 	fd = fopen(disk, "r");
-	if (fd == NULL) {		
+	if (fd == NULL) {	
+		printf("No se pudo abrir el archivo");
 		return 0;
 	}
 	//Avanzar el apuntador de lectura en el dispositivo
@@ -195,11 +197,11 @@ void print_gpt_header(gpt_header * hdr){
 }
 void print_partition_descriptor(gpt_partition_descriptor * desc){	
 	//Se obtiene el tipo de partición a partir del GUID en formato de cadena
-	char * guid_str = guid_to_str((guid*)&desc->partition_type_guid);
-	unsigned long long size = ((desc->ending_lba - desc->starting_lba)+1)*512; //Tamaño en bytes de la partición
+	char * guid_str = guid_to_str((guid*)&desc->partition_type_guid);	
+	unsigned long long size = ((desc->ending_lba - desc->starting_lba)+1)*512; //Tamaño en bytes de la partición		
 	//Se obtiene la información del tipo de partición
-	const gpt_partition_type * type = get_gpt_partition_type(guid_str);
-	printf("Partition Descriptor\n");
+	const gpt_partition_type * type = get_gpt_partition_type(strupr(guid_str));	
+	printf("\nPartition Descriptor\n");
 	printf("Starting LBA: %d\n",desc->starting_lba);
 	printf("Ending LBA: %d\n",desc->ending_lba);
 	printf("Size (in bytes): %d\n",size);

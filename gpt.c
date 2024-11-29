@@ -365,7 +365,7 @@ int is_null_descriptor(gpt_partition_descriptor * desc) {
 
 
 const gpt_partition_type * get_gpt_partition_type(char * guid_str) {	
-	/* Recorrer el arreglo gpt_partition_types y comparar el GUID con el GUID de cada tipo de particion */
+	/* Recorrer el arreglo gpt_partition_types y comparar el GUID con el GUID de cada tipo de particion */	
 	for(int i=0;i < sizeof(gpt_partition_types)/sizeof(gpt_partition_types[0]); i++) { //sizeof(gpt_partition_types)/sizeof(gpt_partition_types[0]) retorna la cantidad de elementos en el arreglo
 		if(strcmp(gpt_partition_types[i].guid, guid_str) == 0) {
 			return &gpt_partition_types[i];
