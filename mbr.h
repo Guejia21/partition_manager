@@ -1,6 +1,10 @@
 /**
-* @file
-* @brief Definiciones para discos inicializados con esquema BR
+ * @file mbr.h
+ * @brief Definiciones para discos inicializados con esquema MBR
+ * @author Jhoan David Chacón <jhoanchacon@unicauca.edu.co>
+ * @author Jonathan David Guejia <jonathanguejia@unicauca.edu.co>
+ * @author Erwin Meza Vega <emezav@unicauca.edu.co>
+ * @copyright MIT License
 */
 
 #ifndef MBR_H
@@ -15,7 +19,7 @@
 /** @brief Unused partition table - MBR*/
 #define MBR_TYPE_UNUSED 0x00
 
-/** @brief Longitud maxima del texto para el tipo de particion */
+/** @brief Maximum text length for partition type */
 #define TYPE_NAME_LEN 256
 
 /** @brief Partition descriptor - MBR */

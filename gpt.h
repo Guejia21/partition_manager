@@ -1,12 +1,13 @@
 /**
-* @file
-* @author Erwin Meza Vega <emezav@unicauca.edu.co>
-* @brief Definiciones para discos inicializados con esquema GPT
-* @copyright MIT License
+ * @file gpt.h
+ * @brief Definiciones para discos inicializados con esquema GPT
+ * @author Jhoan David Chacón <jhoanchacon@unicauca.edu.co>
+ * @author Jonathan David Guejia <jonathanguejia@unicauca.edu.co>
+ * @author Erwin Meza Vega <emezav@unicauca.edu.co>
+ * @copyright MIT License
 */
 
 #ifndef GPT_H
-#define GPT_H
 
 #define GPT_HEADER_SIGNATURE 0x5452415020494645ULL  // 'EFI PART' en little-endian, ULL es usado para indicar que es un unsigned long long
 

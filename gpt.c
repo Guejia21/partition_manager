@@ -1,5 +1,8 @@
 /**
- * @file
+ * @file gpt.c
+ * @brief Implementaciones para discos inicializados con esquema GPT
+ * @author Jhoan David Chacón <jhoanchacon@unicauca.edu.co>
+ * @author Jonathan David Guejia <jonathanguejia@unicauca.edu.co>
  * @author Erwin Meza Vega <emezav@unicauca.edu.co>
  * @copyright MIT License
 */
@@ -285,7 +288,6 @@ const gpt_partition_type gpt_partition_types[] = {
 	{0, 0, 0}
 };
 
-
 int is_protective_mbr(mbr * boot_record) {
 	/* TODO verificar si el MBR es un MBR de proteccion */
 	/* Retorna 1 si el boot record tiene una tabla de particiones
@@ -296,7 +298,6 @@ int is_protective_mbr(mbr * boot_record) {
 	return 0;
 }
 
-
 int is_valid_gpt_header(gpt_header * hdr) {
 	/* TODO retorna 1 si el encabezado es valido (verificar el valor del atributo signature)*/
 	if(hdr->signature == GPT_HEADER_SIGNATURE) {
@@ -305,19 +306,14 @@ int is_valid_gpt_header(gpt_header * hdr) {
 	return 0;
 }
 
-
 char * guid_to_str(guid * buf) {
-
 	unsigned char bytes[sizeof(guid)];
 	//Copy the bytes from the GUID
 	memcpy(&bytes, buf, sizeof(guid));
-
 	//Size of buffer : sizeof GUID plus four "-" plus NULL
 	size_t ptr_sz = (sizeof (guid) * 2) + 5;
-
 	char * ptr = (char*)malloc(ptr_sz);
 	memset(ptr, 0,  ptr_sz);
-
 
 	sprintf(ptr,
 			"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
@@ -338,7 +334,6 @@ char * guid_to_str(guid * buf) {
 			bytes[14],
 			bytes[15]
 			);
-
 	return ptr;
 }
 
@@ -352,17 +347,13 @@ char * gpt_decode_partition_name(char name[72]) {
 	}
 
 	ptr[72] = 0;
-
 	return ptr;
 }
-
 
 int is_null_descriptor(gpt_partition_descriptor * desc) {
 	unsigned char zero_guid[16] = {0}; // GUID nulo (todos ceros)
     return memcmp(desc->partition_type_guid, zero_guid, 16) == 0; // Si es 0 quiere decir que es un descriptor nulo
 }
-
-
 
 const gpt_partition_type * get_gpt_partition_type(char * guid_str) {	
 	/* Recorrer el arreglo gpt_partition_types y comparar el GUID con el GUID de cada tipo de particion */	
@@ -375,6 +366,3 @@ const gpt_partition_type * get_gpt_partition_type(char * guid_str) {
 	//Default: return first element of partition type array
 	return &gpt_partition_types[0];
 }
-
-
-

@@ -1,5 +1,13 @@
-#include <string.h>
+/**
+ * @file mbr.c
+ * @brief Implementacines para discos inicializados con esquema MBR
+ * @author Jhoan David Chacón <jhoanchacon@unicauca.edu.co>
+ * @author Jonathan David Guejia <jonathanguejia@unicauca.edu.co>
+ * @author Erwin Meza Vega <emezav@unicauca.edu.co>
+ * @copyright MIT License
+*/
 
+#include <string.h>
 #include "mbr.h"
 
 const char * mbr_partition_types[256] = {
