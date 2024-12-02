@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "mbr.h"
 #include "gpt.h"
@@ -68,6 +69,13 @@ void print_partition_descriptor(gpt_partition_descriptor * desc);
  */
 void titlesTable();
 
+/**
+ * @brief Converts a string to uppercase
+ * 
+ * @param str String to convert
+ */
+void to_upper(char *str);
+
 int num_sectors=0; /*Cantidad de sectores de la tabla (cantidad de entradas x tamaño de cada entrada)/tamaño sector*/
 
 int main(int argc, char *argv[]) {
@@ -78,52 +86,55 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"Usage: %s disk1 [disk2 ...]\n",argv[0]);
 		exit(EXIT_FAILURE);
 	}
-	//2. Leer el primer sector del disco especificado
+	//2.Iterar sobre los discos especificados	
 	for(i =1; i<argc; i++){
+		//3. Leer el primer sector del disco especificado
 		mbr boot_record;
 		disk = argv[i];
-		//2.1. Si la lectura falla, mostrar un mensaje de error y terminar
+		//3.1. Si la lectura falla, mostrar un mensaje de error y terminar
 		if(read_lba_sector(disk,0,(char*)&boot_record)==0){
 			fprintf(stderr,"Unable to open device\n");
 			exit(EXIT_FAILURE);
-		}
-		//hex_dump((char*)&boot_record,sizeof(mbr));
+		}		
 		//PRE: Se pudo leer el primer sector del disco
-		//3. Imprimir la tabla de particiones
+		//4. Imprimir la tabla de particiones
 		print_partition_table(&boot_record);
-		//4. Si el esquema de particionado es MBR, terminar (ya se imprimió) 
+		//5. Si el esquema de particionado es MBR, terminar (ya se imprimió) 
 		if(is_mbr(&boot_record)){
 			fprintf(stderr,"This is a MBR Partition, there is no more left to do\n");
 			exit(EXIT_SUCCESS);
 		}
 		//PRE: El esquema de particionado es GPT
-		//5. Imprimir la tabla GPT
-		//5.1 Leer el segundo sector del disco (PTHDR)
+		//6. Imprimir la tabla GPT
+		//7. Leer el segundo sector del disco (PTHDR)
 		gpt_header hdr;
 		if(read_lba_sector(disk,1,(char*)&hdr)==0){
 			fprintf(stderr,"Unable to read GPT header\n");
 			exit(EXIT_FAILURE);
 		}
-		//En el PTHDR se encuentra la cantidad de descriptores de la tabla
+		//7.1 Validar si el sector leído es un GPT Header
 		if(!is_valid_gpt_header(&hdr)){
 			fprintf(stderr,"Invalid GPT Header\n");
 			exit(EXIT_FAILURE);
 		}
+		//Cantidad de sectores de la tabla de particiones
 		num_sectors = ceil((hdr.num_partition_entries*hdr.size_partition_entry)/512.0);		
+		//7.2 Imprimir el header
 		print_gpt_header(&hdr);
-		//5.2 Repetir
+		//8. Imprimir la tabla de particiones
 		gpt_partition_descriptor descriptors[4]; //4 descriptores por sector(suponiendo que el tamaño del descriptor es 128 bytes y el bloque de disco es de 512 bytes)
 		//Table titles
 		titlesTable();
-		//Cantidad de sectores de la tabla
+		//8.1 Leer los descriptores de las particiones
 		for(int i = 0; i < num_sectors; i++){			
-			//5.2.1 Leer los siguientes sectores de la tabla de particiones
+			//8.1.1 Leer los siguientes sectores de la tabla de particiones
 			if(read_lba_sector(disk,hdr.partition_entry_lba+i,(char*)&descriptors)==0){
 				fprintf(stderr,"Unable to read this sector\n");
 				exit(EXIT_FAILURE);
 			}			
-			//5.2.2 Para cada descriptor leído, imprimir su información	
+			//8.1.2 Para cada descriptor leído, imprimir su información	
 			for(int j = 0; j < 4; j++){
+				//Si el descriptor es nulo, no se imprime
 				if(is_null_descriptor(&descriptors[j])) continue;
 				print_partition_descriptor(&descriptors[j]);
 			}
@@ -145,10 +156,11 @@ int read_lba_sector(char * disk, unsigned long long lba, char buf[512]) {
 	if(fseek(fd, lba * SECTOR_SIZE, SEEK_SET)!=0){
 		return 0;
 	}
+	//Leer el sector del disco
 	if(fread(buf, 1, SECTOR_SIZE, fd)!=SECTOR_SIZE){
 		return 0;
-	}
-	//Leer el sector del disco
+	}	
+	//Cerrar el archivo
 	fclose(fd);
 	return 1;
 }
@@ -185,10 +197,13 @@ void print_partition_table(mbr * boot_record) {
 	printf("Start LBA\tEnd LBA\t\tType\n");
 	printf("-------------	-------------   ----------------------------------\n");
 	for (int i = 0; i < 4; i++) {
+		//Si la partición está sin usar, no se imprime
 		if (boot_record->partition_table[i].partition_type == MBR_TYPE_UNUSED) {
 			continue;
 		}
+		//Se obtiene el nombre del tipo de partición
 		mbr_partition_type(boot_record->partition_table[i].partition_type, type_name);
+		//Se imprime la información de la partición
 		printf("	   %d\t\t   %d\t%s\n", boot_record->partition_table[i].starting_sector_lba, boot_record->partition_table[i].sectors_in_partition, type_name);
 	}
 	printf("-------------	-------------   ----------------------------------\n");
@@ -207,12 +222,13 @@ void print_gpt_header(gpt_header * hdr){
 	printf("Size of a partition Descriptor: %d\n", hdr->size_partition_entry);	
 }
 void print_partition_descriptor(gpt_partition_descriptor * desc){	
-	//Se obtiene el tipo de partición a partir del GUID en formato de cadena
+	//Se convierte el GUID a una cadena
 	char * guid_str = guid_to_str((guid*)&desc->partition_type_guid);	
-	unsigned long long size = ((desc->ending_lba - desc->starting_lba)+1)*512; //Tamaño en bytes de la partición		
-	//Se obtiene la información del tipo de partición
-	const gpt_partition_type * type = get_gpt_partition_type(strupr(guid_str));	
-	//printf("\nPartition Descriptor\n");
+	//Tamaño en bytes de la partición
+	unsigned long long size = ((desc->ending_lba - desc->starting_lba)+1)*512; 		
+	//Se obtiene la información del tipo de partición a partir del GUID
+	to_upper(guid_str);
+	const gpt_partition_type * type = get_gpt_partition_type(guid_str);		
 	printf("    %d\t",desc->starting_lba);
 	printf("    %d\t",desc->ending_lba);
 	printf("  %d\t",size);
@@ -224,4 +240,10 @@ void print_partition_descriptor(gpt_partition_descriptor * desc){
 void titlesTable(){
 	printf("Start LBA\tEnd LBA\t\tSize\t\tType\t\t\t\t\tPartition name\n");
 	printf("-------------	-------------   ------------  --------------------------------------    --------------------------------------------\n");
+}
+void to_upper(char *str) {
+    while (*str) {  // Mientras no sea el carácter nulo de terminación
+        *str = toupper((unsigned char)*str);  // Convierte el carácter actual a mayúscula
+        str++;  // Avanza al siguiente carácter
+    }
 }
